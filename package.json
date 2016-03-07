@@ -4,7 +4,7 @@
   "description": "A wrapper around the EventEmitter to handle promise based async events",
   "main": "index.js",
   "scripts": {
-    "test": "happiness && mocha",
+    "test": "happiness && npm run babel && mocha",
     "babel": "babel src --out-dir lib",
     "watch": "babel src --watch --out-dir lib"
   },
