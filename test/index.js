@@ -77,4 +77,21 @@ describe('AsyncEventEmitter', function () {
 			done();
 		});
 	});
+
+	it('should resolve with no handlers are present', function (done) {
+		var ee = new EventEmitter();
+		ee.emit('evt').then(function () {
+			done();
+		});
+	});
+
+	it('should throw when an uncaught error occurs', function () {
+		var ee = new EventEmitter();
+		assert.throws(function () {
+			ee.emit('error', new Error('foo'));
+		}, /foo/);
+		assert.throws(function () {
+			ee.emit('error');
+		}, /Uncaught/);
+	});
 });
