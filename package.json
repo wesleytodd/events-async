@@ -1,0 +1,33 @@
+{
+  "name": "events-async",
+  "version": "1.0.0",
+  "description": "A wrapper around the EventEmitter to handle promise based async events",
+  "main": "index.js",
+  "scripts": {
+    "test": "happiness && mocha",
+    "babel": "babel src --out-dir lib",
+    "watch": "babel src --watch --out-dir lib"
+  },
+  "keywords": [
+    "events",
+    "EventEmitter",
+    "async",
+    "promise"
+  ],
+  "author": "Wes Todd",
+  "license": "ISC",
+  "devDependencies": {
+    "happiness": "^5.5.0",
+    "mocha": "^2.3.3",
+    "babel-cli": "^6.5.0",
+    "babel-preset-es2015": "^6.5.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wesleytodd/events-async.git"
+  },
+  "bugs": {
+    "url": "https://github.com/wesleytodd/events-async/issues"
+  },
+  "homepage": "https://github.com/wesleytodd/events-async"
+}
