@@ -2,151 +2,96 @@ import {EventEmitter} from 'events';
 
 export class AsyncEventEmitter extends EventEmitter {
 	emit (type) {
-		var args = arguments;
-		var evts = this._events;
+		var options = {
+			series: false,
+			catch: false
+		};
+		let args = [].slice.call(arguments, 1);
+		if (typeof type === 'object') {
+			options.series = type.series;
+			options.catch = type.catch;
+			type = args.shift();
+		}
+
+		const events = this._events; // eslint-disable-line
 
 		// Throw for unhandled errors
-		if (type === 'error' && (!evts || !evts.error)) {
-			var err = args[1];
+		if (!options.catch && type === 'error' && (!events || !events.error)) {
+			const err = args[0];
 			if (err instanceof Error) {
 				throw err;
 			} else {
-				var e = new Error('Uncaught, unspecified "error" event. (' + err + ')');
+				const e = new Error(`Uncaught, unspecified 'error' event. (${err})`);
 				e.context = err;
 				throw e;
 			}
 		}
 
-		var handler = evts[type];
-		if (!handler) {
-			return Promise.resolve();
-		}
-
-		var isFn = typeof handler === 'function';
-		switch (args.length) {
-		case 1:
-			return emitNone(handler, isFn, this);
-		case 2:
-			return emitOne(handler, isFn, this, args[1]);
-		case 3:
-			return emitTwo(handler, isFn, this, args[1], args[2]);
-		case 4:
-			return emitThree(handler, isFn, this, args[1], args[2], args[3]);
-		default:
-			var len = args.length;
-			var a = new Array(len - 1);
-			for (let i = 1; i < len; i++) {
-				a[i - 1] = args[i];
+		return new Promise((resolve, reject) => {
+			// Throw for unhandled errors
+			if (type === 'error' && (!events || !events.error)) {
+				const err = args[0];
+				if (err instanceof Error) {
+					reject(err);
+				} else {
+					const e = new Error(`Uncaught, unspecified 'error' event. (${err})`);
+					e.context = err;
+					reject(e);
+				}
 			}
-			return emitMany(handler, isFn, this, a);
-		}
-	}
-}
 
-function emitNone (handler, isFn, self) {
-	if (isFn) {
-		var p = handler.call(self);
-		return (p instanceof Promise) ? p : Promise.resolve();
-	} else {
-		var len = handler.length;
-		var listeners = arrayClone(handler, len);
-		var promises = new Array(len);
-		for (let i = 0; i < len; ++i) {
-			promises[i] = listeners[i].call(self);
-		}
-		return Promise.all(promises.filter(function (p) {
-			if (p instanceof Promise) {
-				return true;
+			let callbacks = events[type];
+			if (!callbacks) {
+				return resolve(false);
 			}
-			return false;
-		}));
-	}
-}
 
-function emitOne (handler, isFn, self, arg1) {
-	if (isFn) {
-		var p = handler.call(self, arg1);
-		return (p instanceof Promise) ? p : Promise.resolve();
-	} else {
-		var len = handler.length;
-		var listeners = arrayClone(handler, len);
-		var promises = new Array(len);
-		for (let i = 0; i < len; ++i) {
-			promises[i] = listeners[i].call(self, arg1);
-		}
-		return Promise.all(promises.filter(function (p) {
-			if (p instanceof Promise) {
-				return true;
+			// helper function to reuse as much code as possible
+			const run = (cb) => {
+				switch (args.length) {
+					// fast cases
+				case 0:
+					cb = cb.call(this);
+					break;
+				case 1:
+					cb = cb.call(this, args[0]);
+					break;
+				case 2:
+					cb = cb.call(this, args[0], args[1]);
+					break;
+				case 3:
+					cb = cb.call(this, args[0], args[1], args[2]);
+					break;
+				// slower
+				default:
+					cb = cb.apply(this, args);
+				}
+
+				if (
+					cb && (
+						cb instanceof Promise ||
+						typeof cb.then === 'function'
+					)
+				) {
+					return cb;
+				}
+
+				return Promise.resolve(true);
+			};
+
+			if (typeof callbacks === 'function') {
+				run(callbacks).then(resolve);
+			} else if (typeof callbacks === 'object') {
+				callbacks = callbacks.slice().filter(Boolean);
+				if (options.series) {
+					callbacks.reduce((prev, next) => {
+						return prev.then((res) => {
+							return run(next).then((result) => Promise.resolve(res.concat(result)));
+						});
+					}, Promise.resolve([])).then(resolve);
+				} else {
+					Promise.all(callbacks.map(run)).then(resolve);
+				}
 			}
-			return false;
-		}));
+		});
 	}
-}
-
-function emitTwo (handler, isFn, self, arg1, arg2) {
-	if (isFn) {
-		var p = handler.call(self, arg1, arg2);
-		return (p instanceof Promise) ? p : Promise.resolve();
-	} else {
-		var len = handler.length;
-		var listeners = arrayClone(handler, len);
-		var promises = new Array(len);
-		for (let i = 0; i < len; ++i) {
-			promises[i] = listeners[i].call(self, arg1, arg2);
-		}
-		return Promise.all(promises.filter(function (p) {
-			if (p instanceof Promise) {
-				return true;
-			}
-			return false;
-		}));
-	}
-}
-
-function emitThree (handler, isFn, self, arg1, arg2, arg3) {
-	if (isFn) {
-		var p = handler.call(self, arg1, arg2, arg3);
-		return (p instanceof Promise) ? p : Promise.resolve();
-	} else {
-		var len = handler.length;
-		var listeners = arrayClone(handler, len);
-		var promises = new Array(len);
-		for (let i = 0; i < len; ++i) {
-			promises[i] = listeners[i].call(self, arg1, arg2, arg3);
-		}
-		return Promise.all(promises.filter(function (p) {
-			if (p instanceof Promise) {
-				return true;
-			}
-			return false;
-		}));
-	}
-}
-
-function emitMany (handler, isFn, self, args) {
-	if (isFn) {
-		var p = handler.apply(self, args);
-		return (p instanceof Promise) ? p : Promise.resolve();
-	} else {
-		var len = handler.length;
-		var listeners = arrayClone(handler, len);
-		var promises = new Array(len);
-		for (let i = 0; i < len; ++i) {
-			promises[i] = listeners[i].apply(self, args);
-		}
-		return Promise.all(promises.filter(function (p) {
-			if (p instanceof Promise) {
-				return true;
-			}
-			return false;
-		}));
-	}
-}
-
-function arrayClone (arr, i) {
-	var copy = new Array(i);
-	while (i--) {
-		copy[i] = arr[i];
-	}
-	return copy;
 }
