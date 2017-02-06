@@ -47,4 +47,45 @@ With this module you can mix async listeners and sync listeners, so you are not 
 
 This module also supports the same argument passing behavior as node core's `EventEmitter`.  It is actually as close to a direct port for that as possible, including the performance optimizations.
 
-Handler functions are run in parallel.  If anyone uses this and thinks they need a series version then we can probably add that, but it would mean this module is not a direct api match to the core `EventEmitter`.
+
+By default handler functions are run in parallel. If you need to run them in a series the first argument of the emit function needs to be an object with the `series` option passed.
+
+
+```javascript
+var EventEmitter = require('events-async');
+var delay = require('delay');
+var actual = [];
+
+var ee = new EventEmitter();
+
+// first
+ee.on('evt', function () {
+	return delay(300).then(function () {
+			actual.push(300);
+		});
+});
+
+// second
+ee.on('evt', function () {
+	return delay(200).then(function () {
+			actual.push(200);
+		});
+});
+
+// third
+ee.on('evt', function () {
+	return delay(100).then(function () {
+			actual.push(100);
+		});
+});
+
+// Emit an event and wait for it to complete
+ee.emit({ serial: true }, 'evt').then(function () {
+	// All of the listeners have run
+	console.log(actual);
+	//=> [ 300, 200, 100 ]
+});
+```
+
+
+If you want to catch an error instead of it throwing a hard error then pass `{ catch: true }` into the emit options.
