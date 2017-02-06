@@ -105,11 +105,11 @@ describe('AsyncEventEmitter', function () {
 	it('should catch error and return promise when an uncaught error occurs', function (done) {
 		var ee = new EventEmitter();
 		ee.emit({ catch: true }, 'error')
-			.then(() => {
+			.then(function () {
 				assert.fail('should have thrown an error');
 				done();
 			})
-			.catch((err) => {
+			.catch(function (err) {
 				assert.ok(/Uncaught/.test(err));
 				done();
 			});
@@ -121,7 +121,7 @@ describe('AsyncEventEmitter', function () {
 		var ee = new EventEmitter();
 
 		[ 40, 30, 20, 10 ].forEach(function (n) {
-			ee.on('test', () => {
+			ee.on('test', function () {
 				return delay(n)
 				.then(function () {
 					actual.push(n);
@@ -148,7 +148,7 @@ describe('AsyncEventEmitter', function () {
 		var ee = new EventEmitter();
 
 		[ 40, 30, 20, 10 ].forEach(function (n) {
-			ee.on('test', () => {
+			ee.on('test', function () {
 				return delay(n)
 				.then(function () {
 					actual.push(n);
