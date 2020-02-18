@@ -79,7 +79,7 @@ export class AsyncEventEmitter extends EventEmitter {
 			};
 
 			if (typeof callbacks === 'function') {
-				run(callbacks).then(resolve);
+				run(callbacks).then(resolve, reject);
 			} else if (typeof callbacks === 'object') {
 				callbacks = callbacks.slice().filter(Boolean);
 				if (options.series) {
@@ -87,9 +87,9 @@ export class AsyncEventEmitter extends EventEmitter {
 						return prev.then((res) => {
 							return run(next).then((result) => Promise.resolve(res.concat(result)));
 						});
-					}, Promise.resolve([])).then(resolve);
+					}, Promise.resolve([])).then(resolve, reject);
 				} else {
-					Promise.all(callbacks.map(run)).then(resolve);
+					Promise.all(callbacks.map(run)).then(resolve, reject);
 				}
 			}
 		});
