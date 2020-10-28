@@ -1,6 +1,8 @@
 import {EventEmitter} from 'events';
 
 export class AsyncEventEmitter extends EventEmitter {
+	emitSync = EventEmitter.prototype.emit // Allow default emit to be accessible for the purposes of sync functions.
+
 	emit (type) {
 		var options = {
 			series: false,
