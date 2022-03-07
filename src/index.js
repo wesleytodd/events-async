@@ -42,7 +42,7 @@ export class AsyncEventEmitter extends EventEmitter {
 
 			let callbacks = events[type];
 			if (!callbacks) {
-				return resolve(false);
+				return resolve();
 			}
 
 			// helper function to reuse as much code as possible
@@ -75,7 +75,7 @@ export class AsyncEventEmitter extends EventEmitter {
 					return cb;
 				}
 
-				return Promise.resolve(true);
+				return Promise.resolve(cb);
 			};
 
 			if (typeof callbacks === 'function') {
